@@ -797,3 +797,83 @@ func TestStructWithConstructor_ExtraField(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Invalid parameter 'wrong'")
 }
+
+// Error:
+// ./object_test.go:871:3: cannot use resourceQuantity (variable of type *schema.ObjectSchema) as schema.TypedType[Quantity] value in argument to schema.NewTypedMapSchema[string, Quantity]: *schema.ObjectSchema does not implement schema.TypedType[Quantity] (missing method SerializeType)
+func TestStructWithConstructorMap(t *testing.T) {
+	var hook schema.UnserializeObjectHookFunction = func(rawData map[string]any) (any, error) {
+		return NewStructWithConstructor(rawData[""].(string))
+	}
+	resourceQuantity := schema.NewObjectSchemaWithUnserializeHook(
+		"Test Unserialize Struct With Constructor",
+		map[string]*schema.PropertySchema{
+			"": schema.NewPropertySchema(
+				schema.NewStringSchema(nil, nil, nil),
+				schema.NewDisplayValue(
+					schema.PointerTo("Quantity"),
+					schema.PointerTo("Quantity"),
+					nil,
+				),
+				true,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+			),
+		},
+		hook,
+	)
+
+	var sampleMapProperty = schema.NewMapSchema(
+		schema.NewStringSchema(nil, nil, nil),
+		resourceQuantity,
+		nil,
+		nil,
+	)
+
+	unserializedData, err := sampleMapProperty.Unserialize(map[any]any{"memory": "12Mi"})
+	assert.NoError(t, err)
+	assert.InstanceOf[map[string]Quantity](t, unserializedData)
+	fmt.Printf("\n%+v\n", unserializedData)
+}
+
+// Error:
+// ./object_test.go:871:3: cannot use resourceQuantity (variable of type *schema.ObjectSchema) as schema.TypedType[Quantity] value in argument to schema.NewTypedMapSchema[string, Quantity]: *schema.ObjectSchema does not implement schema.TypedType[Quantity] (missing method SerializeType)
+func TestStructWithConstructorTypedMap(t *testing.T) {
+	var hook schema.UnserializeObjectHookFunction = func(rawData map[string]any) (any, error) {
+		return NewStructWithConstructor(rawData[""].(string))
+	}
+	resourceQuantity := schema.NewObjectSchemaWithUnserializeHook(
+		"Test Unserialize Struct With Constructor",
+		map[string]*schema.PropertySchema{
+			"": schema.NewPropertySchema(
+				schema.NewStringSchema(nil, nil, nil),
+				schema.NewDisplayValue(
+					schema.PointerTo("Quantity"),
+					schema.PointerTo("Quantity"),
+					nil,
+				),
+				true,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+			),
+		},
+		hook,
+	)
+
+	var sampleMapProperty = schema.NewTypedMapSchema[string, Quantity](
+		schema.NewStringSchema(nil, nil, nil),
+		resourceQuantity,
+		nil,
+		nil,
+	)
+
+	unserializedData, err := sampleMapProperty.UnserializeType(map[any]any{"memory": Quantity{unit: "G", value: 12}})
+	assert.NoError(t, err)
+	assert.InstanceOf[map[string]Quantity](t, unserializedData)
+	fmt.Printf("\n%+v\n", unserializedData)
+}
